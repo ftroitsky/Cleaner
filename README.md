@@ -9,5 +9,6 @@ Todo
 
 - [ ] Ask user if he is sure to move/delete several messages
 - [ ] Check input data
+- [ ] Modularize
 - [ ] Rewrite with unit tests
 - [ ] Make team-agnostic
