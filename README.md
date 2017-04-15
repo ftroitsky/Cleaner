@@ -1,27 +1,13 @@
-Welcome to the Glitch BETA
+Clean Bot
 =========================
 
-Click `Show` in the header to see your app live. Updates to your code will instantly deploy and update live.
-
-Glitch is a developer playground that lets you code a real web-app without the slow setup and deployment steps.
-
-[About Glitch](https://glitch.com/about)
+Brave robot that cleans or moves messages in Slack.
 
 
-Your Project
+Todo
 ------------
 
-On the back-end,
-- your app starts at `server.js`
-- add frameworks and packages in `package.json`
-- safely store app secrets in `.env`
-
-On the front-end,
-- edit `client.js`, `style.css` and `index.html`
-- drag in `assets`, like images or music, to add them to your project
-
-
-Made by Fog Creek
------------------
-
-\ ゜o゜)ノ
+- [ ] Ask user if he is sure to move/delete several messages
+- [ ] Check input data
+- [ ] Rewrite with unit tests
+- [ ] Make team-agnostic

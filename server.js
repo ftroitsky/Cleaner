@@ -12,7 +12,7 @@ app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json())
 
 
-// Get a list of team's members
+// Get a list of team members
 
 let members = []
 slack.users.list({token: otoken}, (err, data) => {
