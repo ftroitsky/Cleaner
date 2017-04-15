@@ -6,7 +6,7 @@ const app        = express()
 const token  = process.env.SLACK_TOKEN
 const btoken = process.env.SLACK_BOT_TOKEN
 const otoken = process.env.SLACK_OAUTH_TOKEN
-const team   = 'argh' // TODO: get dinamically 
+const team   = 'argh' // TODO: get dynamically 
 
 app.use(bodyParser.urlencoded({extended:false}))
 app.use(bodyParser.json())
