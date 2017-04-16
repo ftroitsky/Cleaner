@@ -58,15 +58,49 @@ const delMessage = (token, ts, channel) =>
     })
 
 const quoteMessage = (token, btoken, ts, text, channelToId, channelFrom, author, callback) => 
-    slack.chat.postMessage({token:btoken, channel:channelToId, text:"", unfurl_media: true, attachments:[attach(text, channelFrom, author, ts)]}, (err, data) => {
+    slack.chat.postMessage({token:btoken, channel:channelToId, text:'', attachments:[attach(text, channelFrom, author, ts)]}, (err, data) => {
       data ? callback(token, ts, channelFrom.id) : null
     })
 
-// const quoteMessage = (token, btoken, ts, text, channelToId, channelFrom, author, callback ) => 
-//     slack.chat.postMessage({token:btoken, channel:channelToId, text:text, username: author.name, icon_url: author.profile.image_48, unfurl_media: true}, (err, data) => {
-//       data ? callback(token, ts, channelFrom.id) : null
-//     })
+const askQuestion = (text, channelId, count, response) => 
+    slack.chat.postMessage({token:btoken, channel:channelId, text:'', attachments:[
+     {
+            "text": text,
+            "callback_id": "clean_action",
+            "color": "#3AA3E3",
+            "attachment_type": "default",
+            "actions": [
+                {
+                    "name": "clean_action_approve",
+                    "text": "Delete",
+                    "type": "button",
+                    "value": count + ' ' + channelId,
+                    "style": "danger"
+                },
+                {
+                    "name": "clean_action_approve",
+                    "text": "Cancel",
+                    "type": "button",
+                    "value": ""
+                }
+            ]
+        }
+    ]}, (err, data) => {
+      return data ? response.send('OKAY! Cleaning last ' + count + ' messages.') : null
+    })
 
+const answerQuestion = (text, channelId, count, callback) => 
+    slack.chat.postMessage({token:btoken, channel:channelId, text:'', attachments:[
+     {
+            "text": text,
+            "callback_id": "clean_action",
+            "color": "#3AA3E3",
+            "attachment_type": "default",
+            "footer":'✅ Delete'
+        }
+    ]}, (err, data) => {
+      return data ? callback(otoken, parseInt(count)+2, channelId) : null
+    })
 
 
 const moveMessages = (token, btoken, count, channelFromId, channelToId) =>   
@@ -106,6 +140,7 @@ const attach = (text, channel, author, ts) => {
   
 }
 
+
 // ROUTES
 
 app.post("/api/move", (request, response) => {
@@ -125,18 +160,35 @@ app.post("/api/clean", (request, response) => {
   
   let channel = request.body.channel_id
   let opt = tokenize(request.body.text)
-  
-  cleanMessages(otoken, opt.count, channel)
-  
-  response.send('OKAY! Cleaning last ' + opt.count + ' messages.')
-})
+
+  askQuestion('Are you sure?', channel, opt.count, response)
+  })
 
 
 // app.get("/api/users", (request, response) => {
 //     response.send(members)
 // })
 
+const dispatcher = (action_id, response, action) => {
+  switch (action_id) {
+    case 'clean_action' :
+      answerQuestion('Are you sure?', action.channel, action.count, cleanMessages)
+    default :
+      return response.send('Cancelled')
+  }
+}
 
+
+app.post('/api/request', (request, response) => {
+  let answer = JSON.parse(request.body.payload)
+  verifyWebhook(answer)
+  response.sendStatus(200)
+  // console.log(JSON.parse(request.body.payload))
+    
+  // response.send(JSON.parse(request.body.payload).actions[0].value)
+  let value = tokenize(answer.actions[0].value)
+  dispatcher(answer.callback_id, response, {count:value.count, channel: value.channel})
+})
 
 // SERVER
 const listener = app.listen(process.env.PORT, () => {
