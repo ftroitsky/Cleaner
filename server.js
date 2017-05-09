@@ -14,20 +14,16 @@ app.use(bodyParser.json())
 
 
 // Get a list of team members
-
 let members = []
-slack.users.list({token: otoken}, (err, data) => {
-  members = data.members.filter(user => {
-    return !user.is_bot
-  })
+slack.users.list({ token: otoken }, (err, data) => {
+  members = data.members.filter(user => !user.is_bot)
 })
 
 
 // UTILS
 
-const capitalize = string => {
-    return string[0].toUpperCase() + string.slice(1);
-}
+const capitalize = string =>
+  string[0].toUpperCase() + string.slice(1)
 
 const verifyWebhook = body => {
   if (!body || body.token !== token) {
