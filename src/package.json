@@ -2,9 +2,9 @@
   "//1": "describes your app and its dependencies",
   "//2": "https://docs.npmjs.com/files/package.json",
   "//3": "updating this file will download and update your packages",
-  "name": "my-glitch-app",
-  "version": "0.0.1",
-  "description": "What am I about?",
+  "name": "cleaner_bot",
+  "version": "0.0.2",
+  "description": "Slack messages cleaner bot",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -12,21 +12,19 @@
   "dependencies": {
     "express": "^4.15.2",
     "body-parser": "1.17.1",
-    "slack": "^8.3.0"
-  },
-  "devDependencies": {
+    "slack": "^8.3.0",
     "expect": "^1.20.2"
   },
   "engines": {
     "node": "6.10.x"
   },
   "repository": {
-    "url": "https://glitch.com/edit/#!/welcome-project"
+    "url": "https://github.com/ftroitsky/Cleaner"
   },
   "license": "MIT",
   "keywords": [
     "node",
-    "glitch",
+    "slack",
     "express"
   ]
 }

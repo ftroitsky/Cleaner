@@ -210,6 +210,10 @@ app.post('/api/request', (request, response) => {
   }
 })
 
+app.get('/api/test', (req, res) =>{
+  res.json({ success: true })
+})
+
 
 const dispatcher = (answer, action) => {
   switch (answer.callback_id) {

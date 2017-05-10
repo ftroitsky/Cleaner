@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+
+echo "Deploy"
+
+cd ../dist
+git pull $1 master
+git rm -r *
+rm -rf *
+cd ../src
+rsync -av ./ ../dist --exclude node_modules/ --exclude .env --exclude deploy --exclude README.md --exclude test/ --exclude logs/
+cd ../dist
+if [[ `git status --porcelain` ]]; then
+  git add -A .
+  git commit -m "Deploy"
+else
+  echo "no changes"
+fi;
+git push $1 master

@@ -1,0 +1,13 @@
+#IDE config ignore
+.idea/
+mixture.json
+.envrc
+npm-debug.log
+
+# Ignore OS generated files #
+.DS_Store*
+ehthumbs.db
+Thumbs.db
+
+/dist
+/src/.env
