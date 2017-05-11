@@ -5,14 +5,17 @@ git pull $1 master
 git rm -r *
 rm -rf *
 cd ../
-rsync -av ./ dist --exclude dist/ --exclude .git/ --exclude .gitignore --exclude .glitch-assets --exclude node_modules/ --exclude .env --exclude deploy --exclude README.md --exclude test/ --exclude logs/
+rsync -av ./ dist --exclude dist/ --exclude .git/ --exclude .gitignore --exclude .glitch-assets --exclude node_modules/ --exclude .env --exclude deploy --exclude README.md --exclude test/ --exclude logs/ --exclude .jshintrc
+git status --porcelain
 
+cd dist
 if [[ `git status --porcelain` ]]; then
-  git add -A .
-  git commit -m "Deploy"
-  cd dist
-  git push $1 master
-  cd ../
+  echo "DEPLOY"
+  # git add -A .
+  # git commit -m "Deploy"
+  # git push $1 master
 else
   echo "no changes"
 fi;
+
+cd ../
