@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// TODO: decide how to solve issue:
+// /bin/sh: 1: exec: ./bin/cleaner_bot: Permission denied
+
 /**
  * Module dependencies.
  */
