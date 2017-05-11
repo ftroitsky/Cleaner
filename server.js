@@ -21,7 +21,6 @@ slack.users.list({ token: otoken }, (err, data) => {
 
 
 // UTILS
-
 const capitalize = string =>
   string[0].toUpperCase() + string.slice(1)
 
