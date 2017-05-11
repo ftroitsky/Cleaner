@@ -212,7 +212,7 @@ app.post('/api/request', (request, response) => {
 })
 
 app.get('/api/status', (req, res) =>{
-  res.json({ success: true })
+  res.json({ available: true })
 })
 
 

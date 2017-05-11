@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
-export NODE_VERSION="6.9.1"
+export NODE_VERSION="6.9.5"
 
-export PATH="/home/deployer/.nvm/versions/node/v6.9.1/bin:$PATH"
+export PATH="/home/deployer/.nvm/versions/node/v6.9.5/bin:$PATH"
 
 export NVM_DIR="/home/deployer/.nvm"
-export NVM_BIN="/home/deployer/.nvm/versions/node/v6.9.1/bin"
+export NVM_BIN="/home/deployer/.nvm/versions/node/v6.9.5/bin"
 
 echo "--> Installing libraries..."
 npm install --production
