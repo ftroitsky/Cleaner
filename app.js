@@ -3,21 +3,22 @@
 const express    = require('express')
 const bodyParser = require('body-parser')
 const slack      = require('slack')
-const app        = express()
-const expect     = require('expect')
 
-const token  = process.env.SLACK_TOKEN
-const btoken = process.env.SLACK_BOT_TOKEN
-const otoken = process.env.SLACK_OAUTH_TOKEN
-const team   = 'argh' // TODO: get dynamically 
+const token       = process.env.SLACK_TOKEN
+const BOT_TOKEN   = process.env.SLACK_BOT_TOKEN
+const OAUTH_TOKEN = process.env.SLACK_OAUTH_TOKEN
+const TEAM_NAME   = 'argh' // TODO: get dynamically 
 
-app.use(bodyParser.urlencoded({extended:false}))
+
+const app = express()
+
 app.use(bodyParser.json())
+app.use(bodyParser.urlencoded({extended: false}))
 
 
 // Get a list of team members
 let members = []
-slack.users.list({ token: otoken }, (err, data) => {
+slack.users.list({ token: OAUTH_TOKEN }, (err, data) => {
   members = data.members.filter(user => !user.is_bot)
 })
 
@@ -46,6 +47,8 @@ const tokenize = text => {
 }
 
 
+
+
 // MODELS
 
 const quote = (text, channel, author, ts) => {
@@ -53,13 +56,29 @@ const quote = (text, channel, author, ts) => {
     author_name: author.name,
     text: text,
     mrkdwn_in:true,
-    author_link: `https://${team}.slack.com/team/${author.name}`,
+    author_link: `https://${TEAM_NAME}.slack.com/team/${author.name}`,
     author_icon: author.profile.image_48,
     footer: `Posted in <#${channel.name}>`,
     ts: ts
   }
   
 }
+
+const drawButtons = (action, value) => [
+    {
+      name: 'action_confirm',
+      text: capitalize(action),
+      type: 'button',
+      value: value,
+      style: 'danger'
+    },
+    {
+      name: 'action_confirm',
+      text: 'Cancel',
+      type: 'button',
+      value: ''
+    }
+  ]
 
 const question = (action, value) => {   
      return {
@@ -72,26 +91,13 @@ const question = (action, value) => {
       }
 }
 
-const drawButtons = (action, value) => {
-  return [{
-            name: 'action_confirm',
-            text: capitalize(action),
-            type: 'button',
-            value: value,
-            style: 'danger'
-        },
-        {
-            name: 'action_confirm',
-            text: 'Cancel',
-            type: 'button',
-            value: ''
-        }]
-}
 
-expect(question('clean', '5 #fiverr').actions).toBeTruthy()
-expect(question('clean', '5 #fiverr').footer).toBeFalsy()
-expect(question('clean').actions).toBeFalsy()
-expect(question('clean').footer).toBeTruthy()
+
+
+// expect(question('clean', '5 #fiverr').actions).toBeTruthy()
+// expect(question('clean', '5 #fiverr').footer).toBeFalsy()
+// expect(question('clean').actions).toBeFalsy()
+// expect(question('clean').footer).toBeTruthy()
 
 const currentAction = (action, count, channel) => {
       if (action === 'clean') {
@@ -104,19 +110,19 @@ const currentAction = (action, count, channel) => {
 // ACTIONS
 
 const cleanMessages = (count, channel) => {
-  slack.channels.history({token:otoken, channel:channel, count:parseInt(count)+1}, (err, data) => 
+  slack.channels.history({token: OAUTH_TOKEN, channel:channel, count:parseInt(count)+1}, (err, data) => 
     data.messages.map(msg => delMessage(msg.ts, channel))
   )
 }
     
 const delMessage = (ts, channel) => {
-    slack.chat.delete({token:otoken, ts:ts, channel:channel}, (err, data) => { 
+    slack.chat.delete({token:OAUTH_TOKEN, ts:ts, channel:channel}, (err, data) => { 
       console.log(data)
     })
 }
 
 const quoteMessage = (ts, text, channelFrom, channelToId, author, callback) => {
-    slack.chat.postMessage({token:btoken, channel:channelToId, text:'', 
+    slack.chat.postMessage({token: BOT_TOKEN, channel:channelToId, text:'', 
                             attachments:[quote(text, channelFrom, author, ts)]}, (err, data) => {
       // console.log('-------------')
       // console.log(channelFrom)
@@ -126,7 +132,7 @@ const quoteMessage = (ts, text, channelFrom, channelToId, author, callback) => {
 }
 
 const askQuestion = (action, channelFromId, channelToName, count, response) => {
-    slack.chat.postMessage({token:btoken, channel:channelFromId, text:'', 
+    slack.chat.postMessage({token: BOT_TOKEN, channel:channelFromId, text:'', 
                             attachments:[question(action, `${count} ${channelToName}`)]}, (err, data) => {
       console.log(channelToName)
         return data ? response.send(currentAction(action, count, channelToName)) : null
@@ -134,18 +140,18 @@ const askQuestion = (action, channelFromId, channelToName, count, response) => {
 }
 
 const answerQuestion = (action, ts, channelFromId, channelToId, count, callback) => 
-    slack.chat.update({token:btoken, ts:ts, channel:channelFromId, text:'', 
+    slack.chat.update({token: BOT_TOKEN, ts:ts, channel:channelFromId, text:'', 
                        attachments:[question(action)]}, (err, data) => {
         return data ? setTimeout(() => callback(count, channelFromId, channelToId), 1000) : null
     })
 
 const moveMessages = (count, channelFromId, channelToName) =>   
-  slack.channels.history({token:otoken, channel:channelFromId, count:count}, (err, historyData) => { // Get messages list
+  slack.channels.history({token: OAUTH_TOKEN, channel:channelFromId, count:count}, (err, historyData) => { // Get messages list
     
     let channelFrom = {}
     let channelToId = ''
     let channels = []
-    slack.channels.list({token:otoken}, (err, data) => {  // Get channels list
+    slack.channels.list({token: OAUTH_TOKEN}, (err, data) => {  // Get channels list
       
       channels = data.channels     
       channelFrom = channels.filter(channel => { // Get channelFrom object
@@ -178,7 +184,24 @@ const moveMessages = (count, channelFromId, channelToName) =>
  })
 
 
+
+
+const dispatcher = (answer, action) => {
+  switch (answer.callback_id) {
+    case 'clean_action':
+      answerQuestion('clean', answer.message_ts, answer.channel.id, action.channelTo, action.count, cleanMessages)
+      break
+    case 'move_action':
+      answerQuestion('move', answer.message_ts, answer.channel.id, action.channelTo, action.count, moveMessages)
+      break
+    default :
+      return null
+  }
+}
+
 // ROUTES
+
+// app.use('/api', require('api'))
 
 app.post('/api/move', (request, response) => {
   verifyWebhook(request.body)
@@ -216,24 +239,43 @@ app.get('/api/status', (req, res) =>{
 })
 
 
-const dispatcher = (answer, action) => {
-  switch (answer.callback_id) {
-    case 'clean_action':
-      answerQuestion('clean', answer.message_ts, answer.channel.id, action.channelTo, action.count, cleanMessages)
-    case 'move_action':
-      answerQuestion('move', answer.message_ts, answer.channel.id, action.channelTo, action.count, moveMessages)
-    default :
-      return null
-  }
-}
 
-// SERVER
-const listener = app.listen(process.env.PORT, () => {
-  console.log('Your app is listening on port ' + listener.address().port)
+// catch 404 and forward to error handler
+app.use((req, res, next) => {
+    next(404)
 })
 
+// error handler
+// no stacktraces leaked to user on production
+app.use((err, req, res, next) => {
+  if (err === 404) {
+      err = new Error('Not Found')
+      err.status = 404
+  }
+  if (err === 401) {
+      err = new Error('Not Authorized')
+      err.status = 401
+  }
+  res.status(err.status || 500)
 
+  // development error handler
+  // will print stacktrace
+  if (app.get('env') === 'development') {
+    console.trace()
+    // console.error(err.stack)
+    res.json({
+        success: false,
+        message: err.name || err.message,
+        error: err.status || 500,
+        stack: err.stack
+    })
 
-// TESTS
+  } else {
+    res.json({
+      success: false,
+      message: err.name || err.message
+    })
+  }
+})
 
-console.log('✅ All tests passed!')
+module.exports = app
