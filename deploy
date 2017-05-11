@@ -10,7 +10,9 @@ rsync -av ./ dist --exclude dist/ --exclude .git/ --exclude .gitignore --exclude
 if [[ `git status --porcelain` ]]; then
   git add -A .
   git commit -m "Deploy"
+  cd dist
+  git push $1 master
+  cd ../
 else
   echo "no changes"
 fi;
-git push $1 master
