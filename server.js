@@ -209,7 +209,7 @@ app.post('/api/request', (request, response) => {
   }
 })
 
-app.get('/api/test', (req, res) =>{
+app.get('/api/status', (req, res) =>{
   res.json({ success: true })
 })
 
