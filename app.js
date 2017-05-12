@@ -2,7 +2,7 @@
 
 const express    = require('express')
 const bodyParser = require('body-parser')
-const cleaner    = require('./cleaner')
+const cleaner    = 
 
 
 const app = express()
@@ -10,7 +10,7 @@ const app = express()
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: false }))
 
-app.use('/api/', cleaner)
+app.use('/api/', require('./api'))
 
 
 // catch 404 and forward to error handler

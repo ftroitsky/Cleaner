@@ -1,9 +1,6 @@
 "use strict"
 
-const express = require('express')
-const router  = express.Router()
 const slack   = require('slack')
-
 const { capitalize } = require('./utils')
 
 const token       = process.env.SLACK_TOKEN
@@ -17,13 +14,16 @@ slack.users.list({ token: OAUTH_TOKEN }, (err, data) => {
   members = data.members.filter(user => !user.is_bot)
 })
 
-const verifyWebhook = body => {
-  if (!body || body.token !== token) {
-    let error = new Error('Invalid credentials')
-    error.code = 401
-    throw error
-  }
-}
+// If there is no token in res.body - reject with error
+const verifyWebhook = body =>
+  new Promise((resolve, reject) =>{
+    if (!body || body.token !== token) {
+      let error = new Error('Invalid credentials')
+      error.code = 401
+      return reject(error)
+    }
+    resolve(body)
+  })
 
 const tokenize = text => {
   let tokens  = text.split(' ')
@@ -37,15 +37,13 @@ const tokenize = text => {
 }
 
 
-
-
 // MODELS
 
 const quote = (text, channel, author, ts) => {
   return { 
     author_name: author.name,
     text: text,
-    mrkdwn_in:true,
+    mrkdwn_in: true,
     author_link: `https://${TEAM_NAME}.slack.com/team/${author.name}`,
     author_icon: author.profile.image_48,
     footer: `Posted in <#${channel.name}>`,
@@ -70,6 +68,7 @@ const drawButtons = (action, value) => [
   }
 ]
 
+// Ask question before clean or move messages
 const question = (action, value) => {   
   return {
     text: `Are you sure?`,
@@ -197,8 +196,6 @@ const moveMessages = (count, channelFromId, channelToName) =>
  })
 
 
-
-
 const dispatcher = (answer, action) => {
   switch (answer.callback_id) {
     case 'clean_action':
@@ -212,47 +209,10 @@ const dispatcher = (answer, action) => {
   }
 }
 
-// ROUTES
 
-// app.use('', require('api'))
-
-router.post('/move', (request, response) => {
-  verifyWebhook(request.body)
-  
-  let channel = request.body.channel_id
-  let opt = tokenize(request.body.text)
-  
-  askQuestion('move', channel, opt.channel, opt.count, response)
-})
-
-router.post('/clean', (request, response) => {
-  console.log('Clean', request.body.text)
-  verifyWebhook(request.body)
-  
-  let channel = request.body.channel_id
-  let opt = tokenize(request.body.text)
-
-  askQuestion('clean', channel, opt.channel, opt.count, response)
-})
-
-router.post('/request', (request, response) => {
-  console.log('Move', request.body.answer)
-  let answer = JSON.parse(request.body.payload)
-  verifyWebhook(answer)
-  
-  if (answer.actions[0].value) {
-    console.log('Action', answer.actions[0].value)
-    response.sendStatus(200)
-    let value = tokenize(answer.actions[0].value)
-    dispatcher(answer, { count: value.count, channelTo: value.channel })
-  } else {
-    response.send('Cancelled')
-  }
-})
-
-router.get('/status', (req, res) =>{
-  console.log('checking status')
-  res.json({ available: true })
-})
-
-module.exports = router
+module.exports = {
+  verifyWebhook: verifyWebhook,
+  tokenize: tokenize,
+  askQuestion: askQuestion,
+  dispatcher: dispatcher, 
+}
