@@ -12,8 +12,9 @@ router.post('/move', wrap(function *(req, res) {
   
   let channel = req.body.channel_id
   let opt = tokenize(req.body.text)
+  console.log('Move', opt)
   
-  askQuestion('move', channel, opt.channel, opt.count, res)
+  yield askQuestion('move', channel, opt.channel, opt.count, res)
 }))
 
 router.post('/clean', wrap(function *(req, res) {
@@ -22,13 +23,14 @@ router.post('/clean', wrap(function *(req, res) {
   
   let channel = req.body.channel_id
   let opt = tokenize(req.body.text)
+  console.log(opt)
 
-  askQuestion('clean', channel, opt.channel, opt.count, res)
+  yield askQuestion('clean', channel, opt.channel, opt.count, res)
 }))
 
 router.post('/request', wrap(function *(req, res) {
-  console.log('Move', req.body.answer)
   let answer = JSON.parse(req.body.payload)
+  console.log('Answer', answer)
   yield verifyWebhook(answer)
   
   if (answer.actions[0].value) {

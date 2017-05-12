@@ -1,9 +1,10 @@
 "use strict"
 
 const slack   = require('slack')
+const co      = require('co')
 const { capitalize } = require('./utils')
 
-const token       = process.env.SLACK_TOKEN
+const TOKEN       = process.env.SLACK_TOKEN
 const BOT_TOKEN   = process.env.SLACK_BOT_TOKEN
 const OAUTH_TOKEN = process.env.SLACK_OAUTH_TOKEN
 const TEAM_NAME   = 'argh' // TODO: get dynamically 
@@ -14,10 +15,10 @@ slack.users.list({ token: OAUTH_TOKEN }, (err, data) => {
   members = data.members.filter(user => !user.is_bot)
 })
 
-// If there is no token in res.body - reject with error
+// If there is no token in res.body.token or it's wrong - reject with error
 const verifyWebhook = body =>
   new Promise((resolve, reject) =>{
-    if (!body || body.token !== token) {
+    if (!body || body.token !== TOKEN) {
       let error = new Error('Invalid credentials')
       error.code = 401
       return reject(error)
@@ -98,22 +99,48 @@ const currentAction = (action, count, channel) => {
 
 // ACTIONS
 
-const delMessage = (ts, channel, callback) => {
-  slack.chat.delete({token: OAUTH_TOKEN, ts: ts, channel: channel}, (err, data) => { 
-    console.log(data)
-    // callback(err, data)
+// Del one message from channel
+const delMessage = (ts, channel) =>
+  new Promise((resolve, reject) =>{
+    slack.chat.delete({token: OAUTH_TOKEN, ts: ts, channel: channel}, (err, data) => {
+      if (err) return reject(err) 
+      console.log('DEL', data)
+      resolve(data)
+    })
   })
-}
 
-const cleanMessages = (count, channel) => {
-  slack.channels.history({ token: OAUTH_TOKEN, channel: channel, count: parseInt(count) + 1 }, (err, data) => 
-    data.messages.map(msg => delMessage(msg.ts, channel))
-  )
-}
+// Get count messages from given channel history
+const getHistoryData = (count, channel) =>
+  new Promise((resolve, reject) =>{
+    slack.channels.history({ token: OAUTH_TOKEN, channel: channel, count: count }, (err, data) => {
+      if (err) return reject(err) 
+      console.log(data)
+      resolve(data)
+    })
+  })
+
+// Get list of channels
+const getChannelsList = () =>
+  new Promise((resolve, reject) =>{
+    slack.channels.list({token: OAUTH_TOKEN}, (err, data) => {
+      if (err) return reject(err) 
+      resolve(data)
+    })
+  })
+
+// Remove count messages from channel
+const cleanMessages = (count, channel) =>
+  co(function *(){
+    let data = yield getHistoryData(parseInt(count) + 1, channel)
+    for (let msg of data.messages) {
+      yield delMessage(msg.ts, channel)
+    }
+  })
     
 
 
-const quoteMessage = (ts, text, channelFrom, channelToId, author, callback) => {
+const quoteMessage = (ts, text, channelFrom, channelToId, author) =>
+  new Promise((resolve, reject) =>{
     slack.chat.postMessage({
       token: BOT_TOKEN,
       channel: channelToId,
@@ -122,14 +149,19 @@ const quoteMessage = (ts, text, channelFrom, channelToId, author, callback) => {
         quote(text, channelFrom, author, ts)
       ]
     }, (err, data) => {
-      // console.log('-------------')
+      if (err) return reject(err)
+      console.log('-------------', 'QUOTE')
+      console.log(data)
+
       // console.log(channelFrom)
       // console.log(channelToId)
         // return data ? callback(ts, channelFrom.id) : null
+      resolve(ts, channelFrom)
     })
-}
+  })
 
-const askQuestion = (action, channelFromId, channelToName, count, response) => {
+const askQuestion = (action, channelFromId, channelToName, count, res) =>
+  new Promise((resolve, reject) =>{
     slack.chat.postMessage({
       token: BOT_TOKEN,
       channel: channelFromId,
@@ -138,10 +170,11 @@ const askQuestion = (action, channelFromId, channelToName, count, response) => {
         question(action, `${count} ${channelToName}`)
       ]
     }, (err, data) => {
-      console.log(channelToName)
-      return data ? response.send(currentAction(action, count, channelToName)) : null
+      if (err) return reject(err)
+      console.log(action, channelToName)
+      return data ? resolve(res.send(currentAction(action, count, channelToName))) : resolve(null)
     })
-}
+  })
 
 const answerQuestion = (action, ts, channelFromId, channelToId, count, callback) => {
     slack.chat.update({
@@ -157,43 +190,44 @@ const answerQuestion = (action, ts, channelFromId, channelToId, count, callback)
     })
 }
 
-const moveMessages = (count, channelFromId, channelToName) =>   
-  slack.channels.history({token: OAUTH_TOKEN, channel:channelFromId, count:count}, (err, historyData) => { // Get messages list
+// Move count messages from given channelFromId to channel by name of the channel
+const moveMessages = (count, channelFromId, channelToName) =>
+  co(function *(){
+    let historyData = yield getHistoryData(count, channelFromId)
     
     let channelFrom = {}
     let channelToId = ''
-    let channels = []
-    slack.channels.list({token: OAUTH_TOKEN}, (err, data) => {  // Get channels list
+    let data = yield getChannelsList()
       
-      channels = data.channels     
-      channelFrom = channels.filter(channel => { // Get channelFrom object
-        return channel.id === channelFromId
+    let channels = data.channels     
+    channelFrom = channels.filter(channel => { // Get channelFrom object
+      return channel.id === channelFromId
+    })[0]
+
+    channelToId = channels.filter(channel => { // Get channelToId object
+      return channel.name === channelToName
+    })[0].id
+
+    console.log('From: '+ channelFrom.name)
+    console.log('To: '+ channelToId)
+    
+    // Iterate over messages list that is returned earlier
+    for (let msg of historyData.messages) { 
+      let author = members.filter(member => {  // Get the author of current message
+        return member.id === msg.user // TODO: Error if BOT
       })[0]
-      channelToId = channels.filter(channel => { // Get channelToId object
-        return channel.name === channelToName
-      })[0].id
-      // console.log('From: '+ channelFrom.name)
-      // console.log('To: '+ channelToId)
-            
-      historyData.messages.map(msg => { // Iterate over messages list that is returned earlier
+      // console.log(channelFrom)
+      // console.log(msg)
+      //
+    //ts, text, channelFromId, channelToId, author, callback
 
-        let author = members.filter(member => {  // Get the author of current message
-          return member.id === msg.user // TODO: Error if BOT
-        })[0]
-        // console.log(channelFrom)
-        // console.log(msg)
-        //
-      //ts, text, channelFromId, channelToId, author, callback
-
-        // 1. Delete last message from bot (or ignore)
-        // 2. Start to quote/delete messages
-        // 3. Move bot messages as well???
-        
-        quoteMessage(msg.ts, msg.text, channelFrom, channelToId, author, delMessage)
-      })
+      // 1. Delete last message from bot (or ignore)
+      // 2. Start to quote/delete messages
+      // 3. Move bot messages as well???
       
-    })
- })
+      yield quoteMessage(msg.ts, msg.text, channelFrom, channelToId, author, delMessage)
+    }  
+  })
 
 
 const dispatcher = (answer, action) => {
