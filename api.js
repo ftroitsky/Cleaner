@@ -10,22 +10,21 @@ const { verifyWebhook, tokenize, askQuestion, dispatcher } = require('./cleaner'
 router.post('/move', wrap(function *(req, res) {
   yield verifyWebhook(req.body)
   
-  let channel = req.body.channel_id
+  let channelFromId = req.body.channel_id
   let opt = tokenize(req.body.text)
   console.log('Move', opt)
+  console.log(channelFromId)
   
-  yield askQuestion('move', channel, opt.channel, opt.count, res)
+  yield askQuestion('move', channelFromId, opt.channel, opt.count, res)
 }))
 
 router.post('/clean', wrap(function *(req, res) {
-  console.log('Clean', req.body.text)
   yield verifyWebhook(req.body)
   
-  let channel = req.body.channel_id
+  let channelId = req.body.channel_id
   let opt = tokenize(req.body.text)
-  console.log(opt)
 
-  yield askQuestion('clean', channel, opt.channel, opt.count, res)
+  yield askQuestion('clean', channelId, opt.channel, opt.count, res)
 }))
 
 router.post('/request', wrap(function *(req, res) {
